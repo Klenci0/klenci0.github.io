@@ -1,0 +1,758 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useEffect } from 'react';
+import confetti from 'canvas-confetti';
+import {
+  Calculator as CalcIcon,
+  Code,
+  FileCode,
+  Terminal,
+  Copy,
+  Check,
+  RotateCcw,
+  Delete,
+  Moon,
+  Sun,
+  Sparkles,
+  Info,
+  HelpCircle,
+  ExternalLink
+} from 'lucide-react';
+
+type TabType = 'calculadora' | 'python' | 'web-code' | 'github';
+
+interface HistoryItem {
+  id: string;
+  equation: string;
+  result: string;
+  timestamp: string;
+}
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState<TabType>('calculadora');
+  const [current, setCurrent] = useState<string>('0');
+  const [previous, setPrevious] = useState<string>('');
+  const [operation, setOperation] = useState<string | null>(null);
+  const [readyToReset, setReadyToReset] = useState<boolean>(false);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [copiedSection, setCopiedSection] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('calc_history_v1');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // Ignora erro
+    }
+    return [
+      { id: '1', equation: '15% de 200', result: '30', timestamp: 'Exemplo' },
+      { id: '2', equation: '√81', result: '9', timestamp: 'Exemplo' },
+      { id: '3', equation: '7²', result: '49', timestamp: 'Exemplo' }
+    ];
+  });
+
+  // Salva histórico no localStorage
+  useEffect(() => {
+    localStorage.setItem('calc_history_v1', JSON.stringify(history));
+  }, [history]);
+
+  // Suporte a Teclado Físico
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (activeTab !== 'calculadora') return;
+
+      if ((e.key >= '0' && e.key <= '9') || e.key === '.') {
+        handleNumber(e.key);
+      } else if (e.key === '+') {
+        handleOperation('+');
+      } else if (e.key === '-') {
+        handleOperation('−');
+      } else if (e.key === '*' || e.key.toLowerCase() === 'x') {
+        handleOperation('×');
+      } else if (e.key === '/') {
+        e.preventDefault();
+        handleOperation('÷');
+      } else if (e.key === 'Enter' || e.key === '=') {
+        e.preventDefault();
+        handleEquals();
+      } else if (e.key === 'Backspace') {
+        handleDelete();
+      } else if (e.key === 'Escape') {
+        handleClear();
+      } else if (e.key === '%') {
+        handlePercent();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTab, current, previous, operation, readyToReset]);
+
+  // Manipuladores da Calculadora
+  const handleClear = () => {
+    setCurrent('0');
+    setPrevious('');
+    setOperation(null);
+    setReadyToReset(false);
+  };
+
+  const handleDelete = () => {
+    if (readyToReset) {
+      handleClear();
+      return;
+    }
+    if (current === '0') return;
+    if (current.length === 1 || (current.length === 2 && current.startsWith('-'))) {
+      setCurrent('0');
+    } else {
+      setCurrent(current.slice(0, -1));
+    }
+  };
+
+  const handleNumber = (num: string) => {
+    if (readyToReset) {
+      setCurrent(num === '.' ? '0.' : num);
+      setReadyToReset(false);
+      return;
+    }
+    if (num === '.' && current.includes('.')) return;
+    if (current === '0' && num !== '.') {
+      setCurrent(num);
+    } else {
+      setCurrent(current + num);
+    }
+  };
+
+  const handleToggleSign = () => {
+    if (current === '0') return;
+    if (current.startsWith('-')) {
+      setCurrent(current.slice(1));
+    } else {
+      setCurrent('-' + current);
+    }
+  };
+
+  const addHistory = (equation: string, result: string) => {
+    const newItem: HistoryItem = {
+      id: `hist-${Date.now()}`,
+      equation,
+      result,
+      timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    };
+    setHistory((prev) => [newItem, ...prev.slice(0, 19)]);
+  };
+
+  const handleSquare = () => {
+    const val = parseFloat(current);
+    if (isNaN(val)) return;
+    const res = val * val;
+    addHistory(`${val}²`, formatNumber(res));
+    setCurrent(String(res));
+    setReadyToReset(true);
+  };
+
+  const handleSqrt = () => {
+    const val = parseFloat(current);
+    if (isNaN(val)) return;
+    if (val < 0) {
+      setCurrent('Erro: raiz negativa');
+      setReadyToReset(true);
+      return;
+    }
+    const res = Math.sqrt(val);
+    addHistory(`√${val}`, formatNumber(res));
+    setCurrent(String(res));
+    setReadyToReset(true);
+  };
+
+  const handlePercent = () => {
+    const val = parseFloat(current);
+    if (isNaN(val)) return;
+    if (previous !== '' && operation) {
+      const prevVal = parseFloat(previous);
+      const res = (prevVal * val) / 100;
+      setCurrent(String(res));
+    } else {
+      setCurrent(String(val / 100));
+    }
+  };
+
+  const handleOperation = (op: string) => {
+    if (current === '' && previous === '') return;
+
+    if (previous !== '' && operation) {
+      handleEquals();
+      return;
+    }
+
+    setOperation(op);
+    setPrevious(current);
+    setCurrent('');
+  };
+
+  const handleEquals = () => {
+    if (!operation || previous === '' || current === '') return;
+
+    const prevVal = parseFloat(previous);
+    const currVal = parseFloat(current);
+
+    if (isNaN(prevVal) || isNaN(currVal)) return;
+
+    let res = 0;
+    switch (operation) {
+      case '+':
+        res = prevVal + currVal;
+        break;
+      case '−':
+      case '-':
+        res = prevVal - currVal;
+        break;
+      case '×':
+      case '*':
+        res = prevVal * currVal;
+        break;
+      case '÷':
+      case '/':
+        if (currVal === 0) {
+          setCurrent('Erro: div por zero');
+          setPrevious('');
+          setOperation(null);
+          setReadyToReset(true);
+          return;
+        }
+        res = prevVal / currVal;
+        break;
+      default:
+        return;
+    }
+
+    res = Math.round(res * 1000000000) / 1000000000;
+    addHistory(`${formatNumber(prevVal)} ${operation} ${formatNumber(currVal)}`, formatNumber(res));
+    setCurrent(String(res));
+    setPrevious('');
+    setOperation(null);
+    setReadyToReset(true);
+
+    if (operation === '×' && currVal === 42) {
+      try {
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+      } catch {
+        // Ignora
+      }
+    }
+  };
+
+  const formatNumber = (num: number | string) => {
+    if (typeof num === 'string' && (num.startsWith('Erro') || isNaN(Number(num)))) {
+      return num;
+    }
+    const parts = String(num).split('.');
+    const integerPart = parseFloat(parts[0]).toLocaleString('pt-BR');
+    return parts[1] ? `${integerPart},${parts[1]}` : integerPart;
+  };
+
+  const handleCopyCode = (text: string, sectionId: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedSection(sectionId);
+    setTimeout(() => setCopiedSection(null), 2500);
+  };
+
+  // Código Python para visualização
+  const pythonCode = `# ==============================================================
+# Calculadora em Python: 4 Operações Básicas + Porcentagem,
+# Elevação ao Quadrado e Raiz Quadrada
+# ==============================================================
+
+import math
+
+def somar(a, b): return a + b
+def subtrair(a, b): return a - b
+def multiplicar(a, b): return a * b
+
+def dividir(a, b):
+    if b == 0:
+        return "Erro: não é possível dividir por zero!"
+    return a / b
+
+def porcentagem(valor, taxa):
+    return (valor * taxa) / 100
+
+def ao_quadrado(a):
+    return a ** 2
+
+def raiz_quadrada(a):
+    if a < 0:
+        return "Erro: não existe raiz quadrada real de número negativo!"
+    return math.isqrt(int(a)) if a.is_integer() and math.isqrt(int(a)) ** 2 == int(a) else math.sqrt(a)
+
+def calculadora():
+    print("=" * 45)
+    print("      BEM-VINDO À CALCULADORA COMPLETA       ")
+    print("=" * 45)
+
+    while True:
+        print("\\n1 - Soma (+)\\n2 - Subtração (-)\\n3 - Multiplicação (*)\\n4 - Divisão (/)\\n5 - Porcentagem (%)\\n6 - Quadrado (x²)\\n7 - Raiz (√)\\n0 - Sair")
+        opcao = input("\\nDigite a opção desejada (0 a 7): ").strip()
+
+        if opcao == "0":
+            print("\\nObrigado por usar a calculadora. Bons estudos!")
+            break
+
+        if opcao not in ["1", "2", "3", "4", "5", "6", "7"]:
+            print("Opção inválida! Escolha de 0 a 7.")
+            continue
+
+        if opcao in ["6", "7"]:
+            try:
+                num = float(input("Digite o número: "))
+            except ValueError:
+                print("Erro: digite um número válido!")
+                continue
+
+            if opcao == "6":
+                print(f"Resultado: {num}² = {ao_quadrado(num)}")
+            elif opcao == "7":
+                print(f"Resultado: √{num} = {raiz_quadrada(num)}")
+        else:
+            try:
+                if opcao == "5":
+                    n1 = float(input("Valor base (ex: 200): "))
+                    n2 = float(input("Porcentagem (ex: 15 para 15%): "))
+                else:
+                    n1 = float(input("Primeiro número: "))
+                    n2 = float(input("Segundo número: "))
+            except ValueError:
+                print("Erro: digite apenas números válidos!")
+                continue
+
+            if opcao == "1": print(f"Resultado: {n1} + {n2} = {somar(n1, n2)}")
+            elif opcao == "2": print(f"Resultado: {n1} - {n2} = {subtrair(n1, n2)}")
+            elif opcao == "3": print(f"Resultado: {n1} × {n2} = {multiplicar(n1, n2)}")
+            elif opcao == "4": print(f"Resultado: {n1} ÷ {n2} = {dividir(n1, n2)}")
+            elif opcao == "5": print(f"Resultado: {n2}% de {n1} = {porcentagem(n1, n2)}")
+
+if __name__ == "__main__":
+    calculadora()`;
+
+  return (
+    <div className={`min-h-screen transition-colors duration-200 font-sans ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+      {/* Top Bar seguindo a Constituição de Design */}
+      <header className={`sticky top-0 z-30 border-b backdrop-blur-md transition-colors ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white/95 border-slate-200'}`}>
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-8 px-4 sm:px-6 py-3.5">
+          {/* Zona 1: Título da Marca */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+              <CalcIcon className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-lg font-bold tracking-tight whitespace-nowrap shrink-0 block leading-tight">
+                Calculadora
+              </span>
+              <span className="text-[11px] text-slate-400 hidden sm:block">
+                Operações Básicas, Raiz, Quadrado & Porcentagem
+              </span>
+            </div>
+          </div>
+
+          {/* Zona 2: Links de Navegação */}
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+            <button
+              onClick={() => setActiveTab('calculadora')}
+              className={`cursor-pointer whitespace-nowrap shrink-0 transition-colors ${activeTab === 'calculadora' ? 'text-emerald-500 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              Calculadora Interativa
+            </button>
+            <button
+              onClick={() => setActiveTab('python')}
+              className={`cursor-pointer whitespace-nowrap shrink-0 transition-colors ${activeTab === 'python' ? 'text-emerald-500 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              Código Python
+            </button>
+            <button
+              onClick={() => setActiveTab('web-code')}
+              className={`cursor-pointer whitespace-nowrap shrink-0 transition-colors ${activeTab === 'web-code' ? 'text-emerald-500 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              HTML / CSS / JS
+            </button>
+            <button
+              onClick={() => setActiveTab('github')}
+              className={`cursor-pointer whitespace-nowrap shrink-0 transition-colors ${activeTab === 'github' ? 'text-emerald-500 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              Guia GitHub
+            </button>
+          </nav>
+
+          {/* Zona 3: Ação do Usuário (Tema Claro / Escuro) */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className={`p-2 rounded-lg border transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-medium ${isDarkMode ? 'border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100'}`}
+              title="Alternar tema"
+            >
+              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              <span className="hidden sm:inline">{isDarkMode ? 'Modo Claro' : 'Modo Escuro'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Menu mobile */}
+        <div className="md:hidden flex items-center overflow-x-auto gap-2 px-4 py-2 border-t border-slate-200/50 text-xs">
+          {[
+            { id: 'calculadora', label: 'Calculadora' },
+            { id: 'python', label: 'Python' },
+            { id: 'web-code', label: 'HTML/CSS/JS' },
+            { id: 'github', label: 'GitHub' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as TabType)}
+              className={`px-3 py-1.5 rounded-md whitespace-nowrap shrink-0 font-medium transition-colors ${activeTab === tab.id ? 'bg-emerald-600 text-white' : 'bg-slate-200/60 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      {/* Conteúdo Principal */}
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        {/* ABA 1: CALCULADORA INTERATIVA */}
+        {activeTab === 'calculadora' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Calculadora (7 colunas no desktop) */}
+            <div className="lg:col-span-7 flex flex-col items-center">
+              <div className={`w-full max-w-[390px] rounded-3xl p-6 shadow-xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800 shadow-slate-950/50' : 'bg-white border-slate-200 shadow-slate-200/70'}`}>
+                {/* Visor Display */}
+                <div className={`rounded-2xl p-4 flex flex-col justify-end items-end min-h-[105px] mb-5 border transition-colors ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="font-mono text-xs text-slate-400 min-h-[1.25rem] tracking-tight tabular-nums">
+                    {previous} {operation}
+                  </div>
+                  <div className="font-mono text-3xl sm:text-4xl font-bold tracking-tight max-w-full overflow-hidden text-ellipsis tabular-nums mt-1">
+                    {formatNumber(current)}
+                  </div>
+                </div>
+
+                {/* Grade de Botões */}
+                <div className="grid grid-cols-4 gap-2.5 text-base font-semibold select-none">
+                  {/* Linha 1 */}
+                  <button
+                    onClick={handleClear}
+                    className={`h-14 rounded-2xl transition-transform active:scale-95 cursor-pointer font-bold ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 text-rose-400' : 'bg-slate-100 hover:bg-slate-200 text-rose-600'}`}
+                    title="Limpar tudo (Esc)"
+                  >
+                    C
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className={`h-14 rounded-2xl flex items-center justify-center transition-transform active:scale-95 cursor-pointer ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+                    title="Apagar dígito (Backspace)"
+                  >
+                    <Delete className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={handlePercent}
+                    className={`h-14 rounded-2xl transition-transform active:scale-95 cursor-pointer ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+                    title="Porcentagem (%)"
+                  >
+                    %
+                  </button>
+                  <button
+                    onClick={() => handleOperation('÷')}
+                    className="h-14 rounded-2xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-600 dark:text-sky-400 text-2xl transition-transform active:scale-95 cursor-pointer"
+                    title="Divisão (/)"
+                  >
+                    ÷
+                  </button>
+
+                  {/* Linha 2 */}
+                  <button
+                    onClick={handleSquare}
+                    className="h-14 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-400 transition-transform active:scale-95 cursor-pointer"
+                    title="Elevação ao quadrado (x²)"
+                  >
+                    x²
+                  </button>
+                  <button
+                    onClick={handleSqrt}
+                    className="h-14 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-400 text-lg transition-transform active:scale-95 cursor-pointer"
+                    title="Raiz quadrada (√)"
+                  >
+                    √
+                  </button>
+                  <button
+                    onClick={handleToggleSign}
+                    className={`h-14 rounded-2xl transition-transform active:scale-95 cursor-pointer ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+                    title="Mais ou menos (±)"
+                  >
+                    ±
+                  </button>
+                  <button
+                    onClick={() => handleOperation('×')}
+                    className="h-14 rounded-2xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-600 dark:text-sky-400 text-2xl transition-transform active:scale-95 cursor-pointer"
+                    title="Multiplicação (*)"
+                  >
+                    ×
+                  </button>
+
+                  {/* Linha 3: 7, 8, 9, Subtração */}
+                  {['7', '8', '9'].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => handleNumber(n)}
+                      className={`h-14 rounded-2xl border transition-transform active:scale-95 cursor-pointer ${isDarkMode ? 'bg-slate-800/80 hover:bg-slate-700 border-slate-700/60 text-white' : 'bg-white hover:bg-slate-50 border-slate-200/80 text-slate-900 shadow-2xs'}`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => handleOperation('−')}
+                    className="h-14 rounded-2xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-600 dark:text-sky-400 text-2xl transition-transform active:scale-95 cursor-pointer"
+                    title="Subtração (-)"
+                  >
+                    −
+                  </button>
+
+                  {/* Linha 4: 4, 5, 6, Adição */}
+                  {['4', '5', '6'].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => handleNumber(n)}
+                      className={`h-14 rounded-2xl border transition-transform active:scale-95 cursor-pointer ${isDarkMode ? 'bg-slate-800/80 hover:bg-slate-700 border-slate-700/60 text-white' : 'bg-white hover:bg-slate-50 border-slate-200/80 text-slate-900 shadow-2xs'}`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => handleOperation('+')}
+                    className="h-14 rounded-2xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-600 dark:text-sky-400 text-2xl transition-transform active:scale-95 cursor-pointer"
+                    title="Adição (+)"
+                  >
+                    +
+                  </button>
+
+                  {/* Linha 5 e 6: 1, 2, 3, Igual, 0, . */}
+                  {['1', '2', '3'].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => handleNumber(n)}
+                      className={`h-14 rounded-2xl border transition-transform active:scale-95 cursor-pointer ${isDarkMode ? 'bg-slate-800/80 hover:bg-slate-700 border-slate-700/60 text-white' : 'bg-white hover:bg-slate-50 border-slate-200/80 text-slate-900 shadow-2xs'}`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                  <button
+                    onClick={handleEquals}
+                    className="row-span-2 h-full rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-3xl font-bold transition-transform active:scale-95 cursor-pointer shadow-lg shadow-emerald-600/20 flex items-center justify-center"
+                    title="Calcular (Enter ou =)"
+                  >
+                    =
+                  </button>
+
+                  <button
+                    onClick={() => handleNumber('0')}
+                    className={`col-span-2 h-14 rounded-2xl border transition-transform active:scale-95 cursor-pointer ${isDarkMode ? 'bg-slate-800/80 hover:bg-slate-700 border-slate-700/60 text-white' : 'bg-white hover:bg-slate-50 border-slate-200/80 text-slate-900 shadow-2xs'}`}
+                  >
+                    0
+                  </button>
+                  <button
+                    onClick={() => handleNumber('.')}
+                    className={`h-14 rounded-2xl border transition-transform active:scale-95 cursor-pointer ${isDarkMode ? 'bg-slate-800/80 hover:bg-slate-700 border-slate-700/60 text-white' : 'bg-white hover:bg-slate-50 border-slate-200/80 text-slate-900 shadow-2xs'}`}
+                  >
+                    .
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Painel Lateral: Histórico de Cálculos & Dicas (5 colunas) */}
+            <div className="lg:col-span-5 space-y-6">
+              {/* Cartão de Histórico */}
+              <div className={`rounded-2xl p-5 border transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className="flex items-center justify-between pb-3 border-b border-slate-200/60 dark:border-slate-800 mb-3">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Histórico de Operações
+                  </span>
+                  {history.length > 0 && (
+                    <button
+                      onClick={() => setHistory([])}
+                      className="text-xs text-rose-500 hover:underline cursor-pointer flex items-center gap-1"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Limpar histórico</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                  {history.length === 0 ? (
+                    <div className="text-center py-6 text-xs text-slate-400">
+                      Nenhum cálculo realizado ainda. Faça sua primeira conta!
+                    </div>
+                  ) : (
+                    history.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          setCurrent(item.result.replace(/\./g, '').replace(',', '.'));
+                          setReadyToReset(true);
+                        }}
+                        className={`p-3 rounded-xl border text-xs cursor-pointer transition-colors flex items-center justify-between ${isDarkMode ? 'bg-slate-950/60 border-slate-800 hover:border-slate-700' : 'bg-slate-50/70 border-slate-200/70 hover:border-slate-300'}`}
+                        title="Clique para carregar esse valor no visor"
+                      >
+                        <div>
+                          <div className="text-slate-400 font-mono text-[11px]">{item.equation}</div>
+                          <div className="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">{item.result}</div>
+                        </div>
+                        <span className="text-[10px] text-slate-400">{item.timestamp}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Guia de Atalhos do Teclado */}
+              <div className={`rounded-2xl p-5 border transition-colors text-xs ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+                <div className="flex items-center gap-2 font-bold mb-3 text-slate-900 dark:text-white">
+                  <Terminal className="w-4 h-4 text-emerald-500" />
+                  <span>Atalhos do Teclado Físico</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div><kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-mono">0-9</kbd> e <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-mono">.</kbd> : Números</div>
+                  <div><kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-mono">Enter</kbd> / <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-mono">=</kbd> : Igual</div>
+                  <div><kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-mono">+ - * /</kbd> : Operações</div>
+                  <div><kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-mono">Backspace</kbd> : Apagar</div>
+                  <div><kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-mono">%</kbd> : Porcentagem</div>
+                  <div><kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-mono">Esc</kbd> : Limpar tudo</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ABA 2: CÓDIGO PYTHON */}
+        {activeTab === 'python' && (
+          <div className="space-y-6">
+            <div className={`rounded-2xl p-6 border transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                <div>
+                  <h2 className="text-xl font-bold">Código Completo em Python (`calculadora.py`)</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Arquivo pronto para execução em linha de comando com as 7 operações e proteções.
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleCopyCode(pythonCode, 'python')}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-2 cursor-pointer shadow-xs transition-colors shrink-0"
+                >
+                  {copiedSection === 'python' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedSection === 'python' ? 'Copiado!' : 'Copiar Código Python'}</span>
+                </button>
+              </div>
+
+              <div className="relative rounded-xl overflow-hidden border border-slate-800 bg-slate-950 p-4 font-mono text-xs text-slate-200 leading-relaxed overflow-x-auto">
+                <pre>{pythonCode}</pre>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ABA 3: CÓDIGO HTML / CSS / JS */}
+        {activeTab === 'web-code' && (
+          <div className="space-y-6">
+            <div className={`rounded-2xl p-6 border transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <h2 className="text-xl font-bold mb-2">Arquivos Web Standalone (Sem dependências)</h2>
+              <p className="text-xs text-slate-400 mb-6">
+                Estes arquivos permitem rodar a calculadora com duplo clique no navegador, sem precisar de Node ou React.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="flex items-center gap-2 font-bold text-sm mb-1 text-emerald-500">
+                    <FileCode className="w-4 h-4" />
+                    <span>calculadora.html</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mb-3">
+                    Estrutura semântica com display, grid de teclas e atalhos.
+                  </p>
+                  <span className="text-[11px] font-mono text-slate-500">Salvo na raiz</span>
+                </div>
+
+                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="flex items-center gap-2 font-bold text-sm mb-1 text-sky-500">
+                    <Code className="w-4 h-4" />
+                    <span>calculadora.css</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mb-3">
+                    Estilos modernos, Grid, modo claro/escuro e efeitos de clique.
+                  </p>
+                  <span className="text-[11px] font-mono text-slate-500">Salvo na raiz</span>
+                </div>
+
+                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="flex items-center gap-2 font-bold text-sm mb-1 text-amber-500">
+                    <Terminal className="w-4 h-4" />
+                    <span>calculadora.js</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mb-3">
+                    Lógica orientada a objetos (classe Calculator) e eventos de teclado.
+                  </p>
+                  <span className="text-[11px] font-mono text-slate-500">Salvo na raiz</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ABA 4: GUIA GITHUB */}
+        {activeTab === 'github' && (
+          <div className="space-y-6">
+            <div className={`rounded-2xl p-6 border transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <h2 className="text-xl font-bold mb-2">Como subir este repositório para o seu GitHub</h2>
+              <p className="text-xs text-slate-400 mb-6">
+                O projeto já está com o <code className="text-emerald-500">package.json</code>, <code className="text-emerald-500">.gitignore</code> e <code className="text-emerald-500">README.md</code> totalmente configurados para a Calculadora!
+              </p>
+
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-slate-200 space-y-2">
+                  <div className="text-slate-500 font-sans font-bold">Comandos no Terminal:</div>
+                  <div className="text-emerald-400">git init</div>
+                  <div className="text-emerald-400">git add .</div>
+                  <div className="text-emerald-400">git commit -m "feat: calculadora completa com operações básicas, porcentagem, raiz e quadrado"</div>
+                  <div className="text-emerald-400">git branch -M main</div>
+                  <div className="text-emerald-400">git remote add origin https://github.com/SEU-USUARIO/calculadora.git</div>
+                  <div className="text-emerald-400">git push -u origin main</div>
+                </div>
+
+                <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-xs space-y-2">
+                  <div className="font-bold">O que o .gitignore já está protegendo:</div>
+                  <ul className="list-disc list-inside text-slate-400 space-y-1">
+                    <li><code className="text-slate-300">node_modules/</code> (não envia pastas pesadas de dependências)</li>
+                    <li><code className="text-slate-300">__pycache__/</code> e <code className="text-slate-300">*.pyc</code> (arquivos temporários do Python)</li>
+                    <li><code className="text-slate-300">dist/</code> e arquivos de log</li>
+                    <li>Arquivos de sistema como <code className="text-slate-300">.DS_Store</code> ou <code className="text-slate-300">Thumbs.db</code></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Rodapé */}
+      <footer className={`border-t py-6 mt-12 text-xs transition-colors ${isDarkMode ? 'border-slate-800 bg-slate-900/60 text-slate-500' : 'border-slate-200 bg-white text-slate-500'}`}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-700 dark:text-slate-300">Calculadora Moderna</span>
+            <span>·</span>
+            <span>Operações Básicas + Porcentagem, Raiz Quadrada e Potência</span>
+          </div>
+          <div className="text-slate-400">
+            Pronta para GitHub (Node.js, Vite e Python)
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
