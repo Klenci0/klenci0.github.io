@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculadora Moderna</title>
+  <link rel="stylesheet" href="calculadora.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <main class="calculator-container">
+    <div class="calculator-card">
+      <!-- Cabeçalho da Calculadora -->
+      <header class="calculator-header">
+        <span class="app-title">Calculadora</span>
+        <button id="btn-theme" class="btn-icon" title="Alternar tema" aria-label="Alternar tema">
+          🌓
+        </button>
+      </header>
+
+      <!-- Visor / Display -->
+      <section class="display-area" aria-label="Visor da calculadora">
+        <div id="previous-operand" class="previous-operand"></div>
+        <div id="current-operand" class="current-operand">0</div>
+      </section>
+
+      <!-- Teclado de Operações e Dígitos -->
+      <section class="keypad-grid" aria-label="Teclado numérico e de operações">
+        <!-- Linha 1: Funções especiais -->
+        <button class="btn btn-function" data-action="clear" title="Limpar tudo">C</button>
+        <button class="btn btn-function" data-action="delete" title="Apagar último caractere">⌫</button>
+        <button class="btn btn-function" data-action="percent" title="Porcentagem">%</button>
+        <button class="btn btn-operator" data-action="divide" title="Divisão">÷</button>
+
+        <!-- Linha 2: Potência, Raiz e Operador -->
+        <button class="btn btn-special" data-action="square" title="Elevação ao quadrado (x²)">x²</button>
+        <button class="btn btn-special" data-action="sqrt" title="Raiz quadrada (√)">√</button>
+        <button class="btn btn-function" data-action="toggle-sign" title="Mais ou menos (±)">±</button>
+        <button class="btn btn-operator" data-action="multiply" title="Multiplicação">×</button>
+
+        <!-- Linha 3: 7, 8, 9, Subtração -->
+        <button class="btn btn-number" data-number="7">7</button>
+        <button class="btn btn-number" data-number="8">8</button>
+        <button class="btn btn-number" data-number="9">9</button>
+        <button class="btn btn-operator" data-action="subtract" title="Subtração">−</button>
+
+        <!-- Linha 4: 4, 5, 6, Adição -->
+        <button class="btn btn-number" data-number="4">4</button>
+        <button class="btn btn-number" data-number="5">5</button>
+        <button class="btn btn-number" data-number="6">6</button>
+        <button class="btn btn-operator" data-action="add" title="Adição">+</button>
+
+        <!-- Linha 5: 1, 2, 3, Igual -->
+        <button class="btn btn-number" data-number="1">1</button>
+        <button class="btn btn-number" data-number="2">2</button>
+        <button class="btn btn-number" data-number="3">3</button>
+        <button class="btn btn-equals" data-action="equals" title="Calcular resultado">=</button>
+
+        <!-- Linha 6: 0 (duplo) e Ponto decimal -->
+        <button class="btn btn-number btn-span-2" data-number="0">0</button>
+        <button class="btn btn-number" data-number=".">.</button>
+      </section>
+
+      <!-- Painel de Histórico Rápido -->
+      <footer class="history-section">
+        <div class="history-header">
+          <span>Último cálculo:</span>
+          <button id="btn-clear-history" class="btn-text">Limpar</button>
+        </div>
+        <div id="history-content" class="history-content">
+          Nenhuma conta recente realizada.
+        </div>
+      </footer>
+    </div>
+  </main>
+
+  <script src="calculadora.js"></script>
+</body>
+</html>
