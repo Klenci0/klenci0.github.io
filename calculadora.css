@@ -1,0 +1,322 @@
+/* ==============================================================
+   ESTILOS DA CALCULADORA (CSS3 MODERNO)
+   ============================================================== */
+
+:root {
+  /* Paleta Clara (Padrão) */
+  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --card-bg: #ffffff;
+  --card-border: rgba(226, 232, 240, 0.8);
+  --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.25), 0 0 1px 1px rgba(0, 0, 0, 0.05);
+
+  --display-bg: #f8fafc;
+  --display-text: #0f172a;
+  --display-prev-text: #64748b;
+  --display-border: #e2e8f0;
+
+  --btn-num-bg: #f8fafc;
+  --btn-num-text: #0f172a;
+  --btn-num-hover: #f1f5f9;
+  --btn-num-border: #e2e8f0;
+
+  --btn-fn-bg: #f1f5f9;
+  --btn-fn-text: #334155;
+  --btn-fn-hover: #e2e8f0;
+
+  --btn-op-bg: #e0f2fe;
+  --btn-op-text: #0369a1;
+  --btn-op-hover: #bae6fd;
+  --btn-op-border: #bae6fd;
+
+  --btn-special-bg: #fef3c7;
+  --btn-special-text: #b45309;
+  --btn-special-hover: #fde68a;
+
+  --btn-eq-bg: #059669;
+  --btn-eq-text: #ffffff;
+  --btn-eq-hover: #047857;
+  --btn-eq-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
+
+  --text-muted: #64748b;
+  --divider: #f1f5f9;
+}
+
+/* Modo Escuro */
+body.dark-mode {
+  --bg-gradient: linear-gradient(135deg, #090d16 0%, #0f172a 100%);
+  --card-bg: #1e293b;
+  --card-border: rgba(51, 65, 85, 0.8);
+  --card-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+
+  --display-bg: #0f172a;
+  --display-text: #f8fafc;
+  --display-prev-text: #94a3b8;
+  --display-border: #334155;
+
+  --btn-num-bg: #334155;
+  --btn-num-text: #f8fafc;
+  --btn-num-hover: #475569;
+  --btn-num-border: #475569;
+
+  --btn-fn-bg: #1e293b;
+  --btn-fn-text: #cbd5e1;
+  --btn-fn-hover: #334155;
+
+  --btn-op-bg: #075985;
+  --btn-op-text: #e0f2fe;
+  --btn-op-hover: #0284c7;
+  --btn-op-border: #0369a1;
+
+  --btn-special-bg: #78350f;
+  --btn-special-text: #fef3c7;
+  --btn-special-hover: #92400e;
+
+  --btn-eq-bg: #10b981;
+  --btn-eq-text: #ffffff;
+  --btn-eq-hover: #059669;
+  --btn-eq-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+
+  --text-muted: #94a3b8;
+  --divider: #334155;
+}
+
+/* Reset Básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-gradient);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  color: var(--display-text);
+  transition: background 0.3s ease;
+}
+
+/* Container Central */
+.calculator-container {
+  width: 100%;
+  max-width: 380px;
+}
+
+/* Cartão da Calculadora */
+.calculator-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 28px;
+  box-shadow: var(--card-shadow);
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Cabeçalho */
+.calculator-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.5rem;
+}
+
+.app-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  font-size: 1.15rem;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 8px;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.btn-icon:hover {
+  transform: scale(1.1);
+  background: var(--btn-fn-bg);
+}
+
+/* Área do Visor (Display) */
+.display-area {
+  background: var(--display-bg);
+  border: 1px solid var(--display-border);
+  border-radius: 18px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  min-height: 96px;
+  overflow: hidden;
+  word-break: break-all;
+  transition: all 0.2s ease;
+}
+
+.previous-operand {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--display-prev-text);
+  min-height: 1.25rem;
+  margin-bottom: 0.25rem;
+  letter-spacing: -0.02em;
+}
+
+.current-operand {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--display-text);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  max-width: 100%;
+}
+
+/* Grid do Teclado */
+.keypad-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.65rem;
+}
+
+/* Botões Genéricos */
+.btn {
+  font-family: inherit;
+  font-size: 1.15rem;
+  font-weight: 600;
+  height: 54px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s ease;
+  user-select: none;
+  outline: none;
+}
+
+.btn:active {
+  transform: scale(0.94);
+}
+
+/* Botões Numéricos */
+.btn-number {
+  background: var(--btn-num-bg);
+  color: var(--btn-num-text);
+  border-color: var(--btn-num-border);
+}
+
+.btn-number:hover {
+  background: var(--btn-num-hover);
+}
+
+/* Botões de Função (C, ⌫, %, ±) */
+.btn-function {
+  background: var(--btn-fn-bg);
+  color: var(--btn-fn-text);
+}
+
+.btn-function:hover {
+  background: var(--btn-fn-hover);
+}
+
+/* Operadores Especiais (x², √) */
+.btn-special {
+  background: var(--btn-special-bg);
+  color: var(--btn-special-text);
+  font-size: 1.05rem;
+}
+
+.btn-special:hover {
+  background: var(--btn-special-hover);
+}
+
+/* Operadores Aritméticos (+, −, ×, ÷) */
+.btn-operator {
+  background: var(--btn-op-bg);
+  color: var(--btn-op-text);
+  border-color: var(--btn-op-border);
+  font-size: 1.35rem;
+}
+
+.btn-operator:hover {
+  background: var(--btn-op-hover);
+}
+
+.btn-operator.active-op {
+  filter: brightness(0.9);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Botão Igual (=) */
+.btn-equals {
+  background: var(--btn-eq-bg);
+  color: var(--btn-eq-text);
+  box-shadow: var(--btn-eq-shadow);
+  font-size: 1.4rem;
+  grid-row: span 2;
+  height: auto;
+}
+
+.btn-equals:hover {
+  background: var(--btn-eq-hover);
+}
+
+/* Botão que ocupa 2 colunas (0) */
+.btn-span-2 {
+  grid-column: span 2;
+}
+
+/* Seção de Histórico */
+.history-section {
+  border-top: 1px solid var(--divider);
+  padding-top: 0.85rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+}
+
+.btn-text:hover {
+  color: var(--display-text);
+  text-decoration: underline;
+}
+
+.history-content {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--display-prev-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
