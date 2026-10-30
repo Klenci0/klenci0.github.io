@@ -1,0 +1,6 @@
+{
+  "name": "Calculadora Moderna & Completa",
+  "description": "Calculadora com operações matemáticas básicas, porcentagem, raiz quadrada, potência ao quadrado, histórico e suporte a código em Python, HTML, CSS e JS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
